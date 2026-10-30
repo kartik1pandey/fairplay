@@ -1,0 +1,21 @@
+# --- Privacy (design section 9 / item 21): never commit real-account data ---
+private/
+data/
+runs/
+*.parquet
+*.pgn
+*.pgn.zst
+*.duckdb
+
+# --- Python ---
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# --- Notebooks: outputs can leak usernames, so outputs are never committed ---
+.ipynb_checkpoints/
+
+# --- Secrets ---
+.env

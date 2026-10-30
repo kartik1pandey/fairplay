@@ -1,0 +1,16 @@
+# Local online state (design §11): Postgres for the service; zero cost, local only.
+#   docker compose up -d db
+#   FAIRPLAY_TEST_PG=postgresql://fairplay:fairplay@localhost:5433/fairplay uv run pytest tests/test_service.py
+services:
+  db:
+    image: postgres:16.4
+    environment:
+      POSTGRES_USER: fairplay
+      POSTGRES_PASSWORD: fairplay  # local-only container, not a secret
+      POSTGRES_DB: fairplay
+    ports:
+      - "127.0.0.1:5433:5432"  # loopback only
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:
