@@ -104,3 +104,13 @@ def test_small_bands_are_not_judged():
     rep = realism_table({"f": rng.normal(size=60)}, {"f": rng.normal(size=60)},
                         np.full(60, 1400.0), np.full(60, 1400.0))
     assert rep["rows"][0]["ks"] is None and rep["features_ks_above_limit"] == []
+
+
+def test_auc_vs_control_ranks_each_strategy_against_controls_only():
+    from fairplay.synthetic.score import auc_vs_control
+
+    ids = np.array(["syn-control-0", "syn-control-1", "syn-A-0", "syn-A-1", "syn-B-0", "syn-B-1"])
+    score = np.array([0.1, 0.2, 0.9, 0.8, 0.15, 0.05])
+    out = auc_vs_control(ids, score)
+    assert out["A"] == 1.0  # both A above both controls
+    assert out["B"] == 0.25  # B wins one of four pairs (0.15 > 0.1)

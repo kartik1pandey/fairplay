@@ -107,6 +107,21 @@ def recall_table(account_ids: np.ndarray, score: np.ndarray, rating: np.ndarray,
     return out
 
 
+def auc_vs_control(account_ids: np.ndarray, score: np.ndarray) -> dict[str, float]:
+    """Per strategy: P(a random engine-using account outranks a random synthetic control).
+    Ranks against controls from the same generator, so artefacts shared by both cancel; the
+    threshold recall above does not have that protection."""
+    from sklearn.metrics import roc_auc_score
+
+    strategy = np.array([strategy_of(a) for a in account_ids])
+    ok = np.isfinite(score)
+    out = {}
+    for s in sorted(set(strategy) - {"control"}):
+        m = ok & ((strategy == s) | (strategy == "control"))
+        out[s] = float(roc_auc_score(strategy[m] == s, score[m]))
+    return out
+
+
 def realism(synth_feats: list[dict], real: Split, real_band: np.ndarray,
             real_rating: np.ndarray | None = None) -> dict:
     """Synthetic CONTROLS vs real unflagged accounts (design §0.12): per band where both sides

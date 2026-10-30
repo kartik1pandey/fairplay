@@ -194,8 +194,11 @@ def generate(strategy: str, n: int, workers: int) -> dict:
 
 def score(strategies: list[str], include_held_out: bool) -> dict:
     """Synthetic recall at the frozen real-queue threshold + realism (score.py)."""
+    import joblib
+
     from fairplay.casefiles.run_casefiles import chosen_model
     from fairplay.models.data import load_split
+    from fairplay.models.run_tier1 import latest_run
     from fairplay.runs import new_run, save_metrics
     from fairplay.synthetic import score as sc
 
@@ -216,15 +219,30 @@ def score(strategies: list[str], include_held_out: bool) -> dict:
     feats = sc.synthetic_features(files, CUTOFF, Path("data/processed/peer_stats_clock30.parquet"))
     split = sc.to_split(feats, ages, CUTOFF)
     scores = np.asarray(model.score(split), dtype=float)
+    # The rule baseline, frozen the same way, is the comparator: does the model react to the
+    # simulated pattern at least as much as "rank by performance-rating gap" does?
+    rule = joblib.load(latest_run("baselines") / "models.joblib")["rule"]
+    rule_threshold = sc.frozen_threshold(rule, test)
+    rule_scores = np.asarray(rule.score(split), dtype=float)
     report = {"threshold": threshold,
               "recall": sc.recall_table(split.account_id, scores,
                                         split.extra["rating_at_cutoff"], threshold["threshold"]),
+              "auc_vs_control": sc.auc_vs_control(split.account_id, scores),
+              "rule": {"threshold": rule_threshold,
+                       "recall": sc.recall_table(split.account_id, rule_scores,
+                                                 split.extra["rating_at_cutoff"],
+                                                 rule_threshold["threshold"]),
+                       "auc_vs_control": sc.auc_vs_control(split.account_id, rule_scores)},
               "realism": sc.realism(feats, train, (train.extra["rating_at_cutoff"] // 200) * 200,
                                     train.extra["rating_at_cutoff"])}
     save_metrics(run, report)
     return {"run": run.name, "threshold": threshold["threshold"],
             "recall": {s: {k: v for k, v in r.items() if k != "by_band"}
                        for s, r in report["recall"].items()},
+            "auc_vs_control": report["auc_vs_control"],
+            "rule_recall": {s: next(v for k, v in r.items() if k.endswith(("recall", "alarm")))
+                            for s, r in report["rule"]["recall"].items()},
+            "rule_auc_vs_control": report["rule"]["auc_vs_control"],
             "features_ks_above_limit": report["realism"]["features_ks_above_limit"]}
 
 
