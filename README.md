@@ -101,22 +101,46 @@ week by week shows almost no score drift (PSI ≤ 0.0003; the alert line is 0.2)
 ## Engine cost: measure before building
 
 A second stage would rerank top candidates with Stockfish features. The cost was measured
-first:
-- 237 positions per account at 0.125 s each;
-- the cheapest setting needs 14.4 CPU-hours per week, against a 4-hour budget.
+first, on an idle machine:
+- 237 positions per account at 0.099 s each;
+- the cheapest setting needs 11.4 CPU-hours per week, against a 4-hour budget.
 
-The stage was dropped and the queue stays on tier 1. The timing was taken on a busy machine and
-will be re-measured idle.
+That setting would fit (3.8 hours) only by dropping the 2% random audit, which is the one way
+to see what tier 1 misses. So the stage was dropped and the queue stays on tier 1.
 
 ![Tier 2 cost](assets/figures/03_tier2_cost.png)
 
+## Synthetic benchmark: does it react to engine use?
+
+Real labels are Lichess's own decisions, so a model can score well just by copying their
+detectors. The benchmark checks the model against engine use planted by hand:
+- **Players.** Synthetic players are simulated with Maia, a neural network that plays like
+  humans at a given rating.
+- **Engine accounts.** These swap some of their moves for Stockfish moves. Three strategies are
+  used, and the careful one (C) was held out until the end.
+- **Comparison.** Every result is measured against 750 synthetic honest players from the same
+  generator.
+
+| Generated as | LightGBM queued | Rule queued | AUC vs honest (LightGBM / rule) |
+|---|---|---|---|
+| Honest (750) | 0% | 0% | – |
+| A, blunt: 50% engine moves, instant (200) | 50.5% | 99% | 1.00 / 1.00 |
+| B, moderate: 20%, constant delay (200) | 0% | 7% | 0.79 / 0.93 |
+| C, careful (held out): 10%, critical moves only, human timing (200) | 0% | 0% | 0.58 / 0.70 |
+
+![Synthetic benchmark](assets/figures/07_synthetic_auc.png)
+
+**What this shows.**
+- Neither model ever queued an honest synthetic player.
+- Blunt engine use is obvious to both models. Careful, human-timed engine use is barely
+  separated by either, which is the known limit of behaviour-only signals.
+- The simple rule reacts more than LightGBM on every strategy. The simulated players don't
+  match real ones on 11 features (activity, timing, resignations). So it's open whether
+  LightGBM is thrown off by unrealistic inputs or learned flag patterns that go beyond engine
+  use. Neither explanation is claimed.
+
 ## In progress
 
-- **Synthetic benchmark.**
-  - Players are simulated with Maia, a neural model that plays like humans at a given rating.
-  - Engine-assisted accounts replace some of their moves with Stockfish moves.
-  - There are three strategies, one held out, and results are always compared against
-    synthetic honest controls.
 - **Blind hand review** of 120 accounts by two reviewers, with Cohen's kappa.
 - **Prospective test.** Scores were frozen before the outcome snapshot was fetched.
 

@@ -150,6 +150,34 @@ def calibration(final: dict) -> Path:
     return save(fig, "05_calibration")
 
 
+def synthetic() -> Path | None:
+    m = metrics("synthetic_score")
+    if "rule" not in m:
+        return None
+    names = {"A": "A: blunt\n50% of moves", "B": "B: moderate\n20% of moves",
+             "C": "C: careful (held out)\n10%, critical only"}
+    strategies = [s for s in names if s in m["auc_vs_control"]]
+    fig, ax = plt.subplots(figsize=(8, 3.8))
+    w = 0.36
+    for j, (label, auc, color) in enumerate([("LightGBM", m["auc_vs_control"], BLUE),
+                                             ("Rule baseline", m["rule"]["auc_vs_control"],
+                                              GRAY)]):
+        xs = [i + (j - 0.5) * w for i in range(len(strategies))]
+        vals = [auc[s] for s in strategies]
+        ax.bar(xs, vals, width=w - 0.04, color=color, label=label)
+        for x, v in zip(xs, vals, strict=True):
+            ax.text(x, v + 0.015, f"{v:.2f}", ha="center", fontsize=10)
+    ax.axhline(0.5, color=ORANGE, lw=1.6)
+    ax.text(len(strategies) - 0.5, 0.52, "chance", color=INK2, fontsize=9.5, ha="right")
+    ax.set_ylim(0, 1.12)
+    ax.set_xticks(range(len(strategies)), [names[s] for s in strategies], fontsize=10)
+    ax.grid(axis="x", visible=False)
+    ax.set_ylabel("AUC vs synthetic honest players")
+    ax.legend(frameon=False, loc="upper right", fontsize=9.5, ncol=2)
+    ax.set_title("Simulated engine use: blunt is obvious, careful is nearly invisible")
+    return save(fig, "07_synthetic_auc")
+
+
 def box(ax, x, y, w, h, title, body, color):
     ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.02,rounding_size=0.08",
                                 fc=SURFACE, ec=color, lw=2))
@@ -224,7 +252,7 @@ def timeline() -> Path:
 def main() -> None:
     final = metrics("final")
     paths = [pipeline(), timeline(), precision(final), fairness(final), calibration(final),
-             monitoring(), tier2_cost()]
+             monitoring(), tier2_cost(), synthetic()]
     for p in paths:
         if p:
             print(p.as_posix())
