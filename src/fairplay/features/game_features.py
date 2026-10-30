@@ -22,7 +22,7 @@ from fairplay import duck
 from fairplay.duck import copy_atomic
 
 PROCESSED = Path("data/processed")
-FEATURE_VERSION = "f-1.0.0"
+FEATURE_VERSION = "f-1.1.0"  # 1.1: deterministic tie-breaks
 
 GAME_FEATURES_SQL = """
 WITH base AS (

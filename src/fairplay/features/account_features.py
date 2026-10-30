@@ -75,7 +75,7 @@ improve AS (
 daily AS (
     SELECT account_id, max(gain) AS largest_daily_gain FROM (
         SELECT account_id, day,
-               arg_max(post_rating, start_ts) - arg_min(own_elo, start_ts) AS gain
+               arg_min(post_rating, recency) - arg_max(own_elo, recency) AS gain
         FROM w GROUP BY account_id, day)
     GROUP BY account_id
 ),
@@ -85,9 +85,12 @@ agg AS (
         avg(lost_on_time::INT) AS time_loss_share,
         avg(early_resignation::INT) AS early_resignation_share,
         count(*) / count(DISTINCT day) AS games_per_active_day,
-        arg_max(post_rating, start_ts) - arg_min(own_elo, start_ts) AS window_rating_change,
-        arg_max(post_rating, start_ts) AS rating_at_cutoff,
-        mode(tc) AS modal_tc,
+        -- first/last game by recency (start time, then game key): ties in start time and in
+        -- the modal time control must resolve the same way on every run
+        arg_min(post_rating, recency) - arg_max(own_elo, recency) AS window_rating_change,
+        arg_min(post_rating, recency) AS rating_at_cutoff,
+        list_sort([{{'n': -(e.value::BIGINT), 't': e.key}}
+                   FOR e IN map_entries(histogram(tc))])[1].t AS modal_tc,
         -- last-30 statistics
         count(*) FILTER (recency <= {n}) AS n_last,
         avg(score - expected) FILTER (recency <= {n}) AS score_minus_expected,

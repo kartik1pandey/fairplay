@@ -188,3 +188,15 @@ def test_peer_z_uses_training_rows_only():
     # train median 0.5, MAD 0.1 (fewer than 500 accounts -> global train stats); test rows unused
     assert z["d"] == pytest.approx((0.9 - 0.5) / (1.4826 * 0.1))
     assert z["b"] == pytest.approx(0)
+
+
+def test_ties_in_time_control_and_start_time_resolve_the_same_way(tmp_path):
+    """5 games at 300+0 and 5 at 180+0: the modal time control is a tie, broken
+    alphabetically; two last games share a start time, broken by game key."""
+    t0 = dt.datetime(2025, 7, 10, 12)
+    gs = [game(i, t0 + dt.timedelta(minutes=10 * i), tc=(300, 0) if i < 5 else (180, 0),
+               own=1500 + i, diff=1) for i in range(9)]
+    gs.append(game(9, gs[-1]["start_ts"], own=1600, diff=1))  # same start as game 8
+    f, _, _ = build(tmp_path, gs)
+    assert f["A"]["tc_group"] == "180+0"
+    assert f["A"]["rating_at_cutoff"] == 1508 + 1  # k8 sorts before k9 at the same start time
