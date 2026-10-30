@@ -1,0 +1,145 @@
+{
+  "rows": [
+    {
+      "experiment": "R",
+      "split": "test (Aug)",
+      "claim": "flag-precision@k (c = 0.5%), LightGBM",
+      "run": "20261030T073356Z_final",
+      "value": "all_accounts.summary.lgbm.flag_precision.value",
+      "low": "all_accounts.summary.lgbm.flag_precision.ci95.0",
+      "high": "all_accounts.summary.lgbm.flag_precision.ci95.1"
+    },
+    {
+      "experiment": "R",
+      "split": "test (Aug)",
+      "claim": "flag-precision@k (c = 0.5%), logistic regression",
+      "run": "20261030T073356Z_final",
+      "value": "all_accounts.summary.logreg.flag_precision.value",
+      "low": "all_accounts.summary.logreg.flag_precision.ci95.0",
+      "high": "all_accounts.summary.logreg.flag_precision.ci95.1"
+    },
+    {
+      "experiment": "R",
+      "split": "test (Aug)",
+      "claim": "flag-precision@k (c = 0.5%), rule baseline",
+      "run": "20261030T073356Z_final",
+      "value": "all_accounts.summary.rule.flag_precision.value",
+      "low": "all_accounts.summary.rule.flag_precision.ci95.0",
+      "high": "all_accounts.summary.rule.flag_precision.ci95.1"
+    },
+    {
+      "experiment": "R",
+      "split": "test (Aug)",
+      "claim": "lift@k, LightGBM (\u00d7 background rate)",
+      "run": "20261030T073356Z_final",
+      "value": "all_accounts.summary.lgbm.lift.value",
+      "low": "all_accounts.summary.lgbm.lift.ci95.0",
+      "high": "all_accounts.summary.lgbm.lift.ci95.1"
+    },
+    {
+      "experiment": "R",
+      "split": "test (Aug)",
+      "claim": "flag-recall@k, LightGBM",
+      "run": "20261030T073356Z_final",
+      "value": "all_accounts.summary.lgbm.flag_recall.value",
+      "low": "all_accounts.summary.lgbm.flag_recall.ci95.0",
+      "high": "all_accounts.summary.lgbm.flag_recall.ci95.1"
+    },
+    {
+      "experiment": "R",
+      "split": "test (Aug)",
+      "claim": "flag-PR-AUC, LightGBM",
+      "run": "20261030T073356Z_final",
+      "value": "all_accounts.summary.lgbm.flag_pr_auc.value",
+      "low": "all_accounts.summary.lgbm.flag_pr_auc.ci95.0",
+      "high": "all_accounts.summary.lgbm.flag_pr_auc.ci95.1"
+    },
+    {
+      "experiment": "R",
+      "split": "test (Aug)",
+      "claim": "LightGBM \u2212 rule, flag-precision (pre-registered)",
+      "run": "20261030T073356Z_final",
+      "value": "all_accounts.comparisons.lgbm_vs_rule.diff",
+      "low": "all_accounts.comparisons.lgbm_vs_rule.ci95.0",
+      "high": "all_accounts.comparisons.lgbm_vs_rule.ci95.1"
+    },
+    {
+      "experiment": "R",
+      "split": "test (Aug)",
+      "claim": "LightGBM \u2212 logistic regression, flag-precision (pre-registered)",
+      "run": "20261030T073356Z_final",
+      "value": "all_accounts.comparisons.lgbm_vs_logreg.diff",
+      "low": "all_accounts.comparisons.lgbm_vs_logreg.ci95.0",
+      "high": "all_accounts.comparisons.lgbm_vs_logreg.ci95.1"
+    },
+    {
+      "experiment": "R",
+      "split": "test, unseen",
+      "claim": "flag-precision@k, LightGBM, unseen accounts",
+      "run": "20261030T073356Z_final",
+      "value": "unseen_accounts.summary.lgbm.flag_precision.value",
+      "low": "unseen_accounts.summary.lgbm.flag_precision.ci95.0",
+      "high": "unseen_accounts.summary.lgbm.flag_precision.ci95.1"
+    },
+    {
+      "experiment": "R",
+      "split": "test, unseen",
+      "claim": "LightGBM \u2212 rule, unseen accounts (pre-registered)",
+      "run": "20261030T073356Z_final",
+      "value": "unseen_accounts.comparisons.lgbm_vs_rule.diff",
+      "low": "unseen_accounts.comparisons.lgbm_vs_rule.ci95.0",
+      "high": "unseen_accounts.comparisons.lgbm_vs_rule.ci95.1"
+    },
+    {
+      "experiment": "R",
+      "split": "test, unseen",
+      "claim": "LightGBM \u2212 logistic regression, unseen accounts (pre-registered)",
+      "run": "20261030T073356Z_final",
+      "value": "unseen_accounts.comparisons.lgbm_vs_logreg.diff",
+      "low": "unseen_accounts.comparisons.lgbm_vs_logreg.ci95.0",
+      "high": "unseen_accounts.comparisons.lgbm_vs_logreg.ci95.1"
+    },
+    {
+      "experiment": "R",
+      "split": "test (Aug)",
+      "claim": "Brier score, LightGBM (calibrated)",
+      "run": "20261030T073356Z_final",
+      "value": "calibration.brier"
+    },
+    {
+      "experiment": "R",
+      "split": "test (Aug)",
+      "claim": "flag-precision@k with the 2200+ cap, LightGBM",
+      "run": "20261030T073356Z_final",
+      "value": "fairness.lgbm.capped.flag_precision"
+    },
+    {
+      "experiment": "R",
+      "split": "test (Aug)",
+      "claim": "selection rate among unflagged, accounts < 30 days \u00f7 overall (LightGBM, capped)",
+      "run": "20261030T073356Z_final",
+      "value": "fairness.lgbm.capped.selection_rate_among_unflagged.account_age:<30d.ratio_to_overall"
+    },
+    {
+      "experiment": "R",
+      "split": "test (Aug)",
+      "claim": "selection rate among unflagged, accounts 30\u2013365 days \u00f7 overall (LightGBM, capped)",
+      "run": "20261030T073356Z_final",
+      "value": "fairness.lgbm.capped.selection_rate_among_unflagged.account_age:30-365d.ratio_to_overall"
+    },
+    {
+      "experiment": "R",
+      "split": "test (Aug)",
+      "claim": "selection rate among unflagged, fast improvers \u00f7 overall (LightGBM, capped)",
+      "run": "20261030T073356Z_final",
+      "value": "fairness.lgbm.capped.selection_rate_among_unflagged.improver:fast_improver.ratio_to_overall"
+    },
+    {
+      "experiment": "R",
+      "split": "test (Aug)",
+      "claim": "selection rate among unflagged, 2200+ rated \u00f7 overall (LightGBM, capped)",
+      "run": "20261030T073356Z_final",
+      "value": "fairness.lgbm.capped.selection_rate_among_unflagged.rating:2200+.ratio_to_overall"
+    }
+  ]
+}

@@ -15,7 +15,7 @@ from matplotlib.patches import FancyBboxPatch  # noqa: E402
 
 from fairplay.runs import RUNS  # noqa: E402
 
-OUT = Path("docs/figures")
+OUT = Path("assets/figures")
 SURFACE, INK, INK2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3de"
 BLUE, ORANGE, AQUA, GRAY = "#2a78d6", "#eb6834", "#1baf7a", "#b4b3ad"
 
