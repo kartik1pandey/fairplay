@@ -1,0 +1,22 @@
+# CI (design §12): lint, tests, privacy guard on published files, README numbers = results table.
+# Never calls a live API, never needs Stockfish/lc0/Maia (fake engines in tests), never sees data/.
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.8.13"
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run pytest -q
+      - name: No account-level data in published files
+        run: uv run python -m fairplay.privacy --published README.md docs results DECISIONS.md
+      - name: README numbers match the generated results table
+        if: hashFiles('README.md') != ''
+        run: uv run python -m fairplay.report check README.md
