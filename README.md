@@ -11,6 +11,12 @@ prioritisation signal, not evidence of wrongdoing.
 
 ![Pipeline](assets/figures/00_pipeline.png)
 
+**Live demo:** [huggingface.co/spaces/Kartik3pandey/fairplay-demo](https://huggingface.co/spaces/Kartik3pandey/fairplay-demo).
+Paste Lichess game links or a PGN, or draw a synthetic player, and get the queue label, the
+score against the frozen threshold, the case file and per-game attention. It runs in the
+browser (Pyodide): the same Python code and frozen model as the evaluation. Its scores match
+the offline pipeline to 3 decimals.
+
 ## Headline result
 
 At a review capacity of 0.5% of active accounts per week, the LightGBM queue on a locked test
@@ -139,10 +145,49 @@ detectors. The benchmark checks the model against engine use planted by hand:
   LightGBM is thrown off by unrealistic inputs or learned flag patterns that go beyond engine
   use. Neither explanation is claimed.
 
+## Model research: is LightGBM the right model?
+
+Every challenger was judged the way LightGBM was: same July rows, same account-grouped folds,
+same queue metric, and the same paired account bootstrap. The tree models and the MLP got the same
+budget, 50 Optuna trials each. This is exploratory: August was already scored once and can't pick
+a model, so a July winner gets one clean test on the prospective experiment.
+
+![Model research](assets/figures/08_model_research.png)
+
+| Idea | July flag-precision@k | vs LightGBM (paired 95% CI) | Verdict |
+|---|---|---|---|
+| LightGBM (tier 1) | 0.411 | – | reference |
+| XGBoost | 0.412 | +0.1 pts (−1.3 to +1.4) | tie |
+| CatBoost | 0.422 | +1.1 pts (−0.3 to +2.1) | tie |
+| PyTorch MLP | 0.390 | −2.1 pts (−3.9 to −0.5) | worse |
+| **Attention over games** (gated-attention MIL) | **0.516** | **+10.5 pts (8.0 to 12.7)** | **better** |
+| + 1D-CNN over each game's move times | 0.516 | ±0 vs attention; = shuffled-order control | no signal in move order |
+| + Maia "humanness" of move choices (case-control sample) | – | PR-AUC +1.4 pts (−0.2 to +3.2) | no evidence |
+
+**What this shows.**
+- **The model family barely matters on 15 account features.** The tree libraries land within
+  about one point of each other.
+- **The representation matters.** Keeping an account's games as a *bag* and letting attention
+  pick the ones that count adds about 10 points.
+- **Attention is checked, not trusted.** Masking the top-attention game moves the score by 0.62
+  logits; masking a random game moves it by −0.01. The demo shows these weights per game.
+  They mark what the score leaned on, not where engine help happened.
+- **Two negative results, reported plainly.**
+  - The order of moves inside a game added nothing: the model with shuffled moves scored the same.
+  - Maia's measure of how human the move choices are barely separates flagged from unflagged
+    accounts. That matches the synthetic finding that careful engine use is hard to see in
+    behaviour.
+
 ## In progress
 
 - **Blind hand review** of 120 accounts by two reviewers, with Cohen's kappa.
-- **Prospective test.** Scores were frozen before the outcome snapshot was fetched.
+- **Prospective test.** 69,176 accounts were scored on their October 2026 games (cutoff
+  1 November). The scores were frozen and hashed at 10:56 UTC on 2 November, before the index
+  status snapshot was fetched (11:14 to 13:14 UTC). The test population is the accounts that
+  were not flagged at the index (599 already were). Outcome: flagged by the snapshot 60 days
+  later (about 1 January 2027). Accounts missing or closed without a flag are censored, never
+  counted as negatives. The comparisons were fixed in advance: LightGBM against the rule and
+  logistic regression, and the attention model against LightGBM, which is its first clean test.
 
 ## All reported numbers
 
@@ -188,6 +233,9 @@ src/fairplay/
   service/      FastAPI app, Postgres store, job queue, weekly job, load test
   monitoring/   PSI drift and the weekly replay
   tier2/        engine cost benchmark
+  deep/         attention over games, move-sequence model, Maia humanness (research)
+  demo/         PGN / link demo: in-browser Space (Pyodide) and a Gradio app
+  prospective/  Experiment P: freeze scores, index and outcome snapshots, evaluation
 tests/          pytest suite (fake engines; no network, no private data)
 ```
 
@@ -212,7 +260,10 @@ benchmark needs Stockfish, lc0 and Maia weights installed locally; the tests use
   their own, so their numbers will differ.
 - Usernames are replaced by random UUIDs at ingest.
 - CI blocks any published file that contains account-level rows.
-- The public demo uses synthetic accounts only.
+- The public demo takes game links or PGN (never a username), drops player names on reading,
+  stores nothing, and labels a result only as "would / would not enter the review queue".
+  It runs in the visitor's browser, so pasted games never reach a server; game links go
+  straight from the browser to Lichess.
 
 Any real enforcement use would need policy approval, legal and privacy review, an appeal
 process, a shadow period and an independent audit first.

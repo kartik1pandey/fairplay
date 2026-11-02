@@ -178,6 +178,38 @@ def synthetic() -> Path | None:
     return save(fig, "07_synthetic_auc")
 
 
+def research() -> Path | None:
+    """July out-of-fold flag-precision for every model family, from the deep and bake-off runs.
+    Exploratory (July only); the figure title says so."""
+    rows = {}
+    for suffix in ("bakeoff", "deep"):
+        runs = sorted(p for p in RUNS.glob(f"*_{suffix}") if (p / "metrics.json").exists())
+        for run in runs:  # later runs overwrite earlier ones
+            rows |= json.loads((run / "metrics.json").read_text(encoding="utf-8"))["july_oof"]
+    if "mil" not in rows:
+        return None
+    labels = {"rule": "Rule baseline", "logreg": "Logistic regression", "mlp": "PyTorch MLP",
+              "catboost": "CatBoost", "xgb": "XGBoost", "lgbm": "LightGBM (tier 1)",
+              "mil_seq": "+ move-sequence CNN", "mil_seq_shuf": "+ CNN, moves shuffled",
+              "mil": "Attention over games"}
+    keys = [k for k in labels if k in rows]
+    fig, ax = plt.subplots(figsize=(8, 0.48 * len(keys) + 1.2))
+    for i, k in enumerate(keys):
+        fp = rows[k]["flag_precision"]
+        lo, hi = fp["ci95"]
+        color = AQUA if k == "mil" else BLUE if k == "lgbm" else GRAY
+        ax.barh(i, fp["value"], height=0.58, color=color)
+        ax.errorbar(fp["value"], i, xerr=[[fp["value"] - lo], [hi - fp["value"]]], fmt="none",
+                    ecolor=INK, elinewidth=1.2, capsize=3)
+        ax.text(hi + 0.008, i, f"{fp['value']:.3f}", va="center", color=INK, fontsize=10)
+    ax.set_yticks(range(len(keys)), [labels[k] for k in keys])
+    ax.invert_yaxis()
+    ax.set_xlim(0, 0.66)
+    ax.set_xlabel("Flag-precision in a 0.5% weekly queue (July, out-of-fold, 95% CI)")
+    ax.set_title("Model research: the representation matters more than the tree library")
+    return save(fig, "08_model_research")
+
+
 def box(ax, x, y, w, h, title, body, color):
     ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.02,rounding_size=0.08",
                                 fc=SURFACE, ec=color, lw=2))
@@ -252,7 +284,7 @@ def timeline() -> Path:
 def main() -> None:
     final = metrics("final")
     paths = [pipeline(), timeline(), precision(final), fairness(final), calibration(final),
-             monitoring(), tier2_cost(), synthetic()]
+             monitoring(), tier2_cost(), synthetic(), research()]
     for p in paths:
         if p:
             print(p.as_posix())
