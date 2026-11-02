@@ -43,13 +43,13 @@ def read_games(text: str, limit: int = MAX_GAMES) -> list[chess.pgn.Game]:
 
 
 def focus_player(games: list[chess.pgn.Game]) -> str | None:
-    """The player present in the most games, if present in all of them."""
+    """The one player present in every game. None if there is no such player, or if two are
+    (games between the same two people): guessing would score the wrong player, so the caller
+    asks for a side instead."""
     names = Counter(n.lower() for g in games for n in {g.headers.get("White", "?"),
                                                        g.headers.get("Black", "?")})
-    if not names:
-        return None
-    name, count = names.most_common(1)[0]
-    return name if count == len(games) and name != "?" else None
+    common = [n for n, c in names.items() if c == len(games) and n != "?"]
+    return common[0] if len(common) == 1 else None
 
 
 def _event_kind(event: str) -> str:
@@ -123,7 +123,7 @@ def parse(text: str, side: str | None = None) -> tuple[uuid.UUID, list[Parsed], 
         elif name:
             color = "w" if g.headers.get("White", "").lower() == name else "b"
         else:
-            out.append(Parsed(None, None, "no player is common to every game; pick a side"))
+            out.append(Parsed(None, None, "no single player is common to every game; pick a side"))
             continue
         opponent = uuid.UUID(bytes=secrets.token_bytes(16), version=4)
         ids = {color: focus, "b" if color == "w" else "w": opponent}

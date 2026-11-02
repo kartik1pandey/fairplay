@@ -48,6 +48,16 @@ def test_focus_player_is_the_one_in_every_game():
     assert parsed[1].game.black.account_id == focus
 
 
+def test_two_players_in_every_game_need_a_side():
+    # the same two people every game: either could be "the" player, so never guess
+    text = make_pgn("alice", "bob", "AAAAAAAA") + make_pgn("bob", "alice", "BBBBBBBB")
+    assert focus_player(read_games(text)) is None
+    _, parsed, _ = parse(text)
+    assert all(p.game is None and "pick a side" in p.problem for p in parsed)
+    _, parsed, _ = parse(text, side="w")
+    assert [p.color for p in parsed] == ["w", "w"]
+
+
 def test_mixed_players_need_a_side():
     text = make_pgn("alice", "bob", "AAAAAAAA") + make_pgn("carol", "dave", "BBBBBBBB")
     _, parsed, _ = parse(text)
