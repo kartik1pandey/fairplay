@@ -30,11 +30,12 @@ import pyarrow as pa
 
 from fairplay.ingest.hf_month import OUT_ROOT as SAMPLED_ROOT
 from fairplay.ingest.hf_month import install_macros
+from fairplay.ingest.prefilter import MIN_PLIES
 from fairplay.labels import store
 
 PROCESSED = Path("data/processed")
 SECRET_PATH = Path("private/game_key_secret.txt")
-MIN_PLIES = 20  # at least 10 moves per side
+
 
 SAN_RE = r"(?:O-O-O|O-O|[NBRQK][a-h]?[1-8]?x?[a-h][1-8]|[a-h](?:x[a-h])?[1-8](?:=[NBRQ])?)[+#]?"
 CLK_RE = r"%clk (\d+):(\d\d):(\d\d(?:\.\d+)?)"
@@ -168,24 +169,30 @@ def clean_chunk(con: duckdb.DuckDBPyConnection, src: Path, month: str, rate_bp: 
     return drops, flags
 
 
-def clean_month(con: duckdb.DuckDBPyConnection, month: str, rate_bp: int, secret: str) -> dict:
+def clean_month(con: duckdb.DuckDBPyConnection, month: str, rate_bp: int, secret: str,
+                processed: Path | None = None) -> dict:
+    processed = processed or PROCESSED  # read at call time: tests patch PROCESSED
     src_files = sorted((SAMPLED_ROOT / f"month={month}").glob("*.parquet"))
     find_duplicates(con, src_files)
-    chunks = PROCESSED / "_chunks" / month
-    shutil.rmtree(chunks, ignore_errors=True)
-    chunks.mkdir(parents=True)
+    chunks = processed / "_chunks" / month
+    chunks.mkdir(parents=True, exist_ok=True)  # kept across restarts: finished chunks resume
     drops: Counter = Counter()
     flags = [0, 0]
     for part, src in enumerate(src_files):
-        d, f = clean_chunk(con, src, month, rate_bp, secret, chunks, part)
+        done = chunks / f"done-{part:03d}.json"  # written after both chunk files are complete
+        if done.exists():
+            d, f = json.loads(done.read_text())
+        else:
+            d, f = clean_chunk(con, src, month, rate_bp, secret, chunks, part)
+            done.write_text(json.dumps([d, list(f)]))
         drops.update(d)
         flags = [flags[0] + f[0], flags[1] + f[1]]
         print(f"{month} chunk {part + 1}/{len(src_files)}", flush=True)
 
-    (PROCESSED / "player_games").mkdir(parents=True, exist_ok=True)
-    (PROCESSED / "game_moves").mkdir(parents=True, exist_ok=True)
-    pg_path = (PROCESSED / "player_games" / f"month={month}.parquet").as_posix()
-    gm_path = (PROCESSED / "game_moves" / f"month={month}.parquet").as_posix()
+    (processed / "player_games").mkdir(parents=True, exist_ok=True)
+    (processed / "game_moves").mkdir(parents=True, exist_ok=True)
+    pg_path = (processed / "player_games" / f"month={month}.parquet").as_posix()
+    gm_path = (processed / "game_moves" / f"month={month}.parquet").as_posix()
     # streaming merge, no global sort: nothing downstream depends on row order
     for prefix, out in (("pg", pg_path), ("gm", gm_path)):
         con.execute(f"COPY (SELECT * FROM read_parquet('{(chunks / prefix).as_posix()}-*.parquet'))"
@@ -201,7 +208,7 @@ def clean_month(con: duckdb.DuckDBPyConnection, month: str, rate_bp: int, secret
         "kept_clock_invalid": flags[1], "player_game_rows": player_rows, "accounts": accounts,
         "input_files": len(src_files),
     }
-    (PROCESSED / f"clean_manifest_{month}.json").write_text(json.dumps(manifest, indent=2),
+    (processed / f"clean_manifest_{month}.json").write_text(json.dumps(manifest, indent=2),
                                                            encoding="utf-8")
     return manifest
 
