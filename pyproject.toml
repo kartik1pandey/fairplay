@@ -29,6 +29,16 @@ dev = [
 docs = [
     "matplotlib>=3.9",
 ]
+research = [
+    "catboost>=1.2.10",
+    "maia2>=0.9",
+    "tabpfn>=9.2.0",
+    "torch>=2.15.0",
+    "xgboost>=3.2.0",
+]
+space = [
+    "gradio>=6.31.0",
+]
 
 [build-system]
 requires = ["hatchling"]
