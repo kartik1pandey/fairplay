@@ -4,8 +4,8 @@ Two forms, same analysis code and bundle (aggregate-only, checked again here; no
 private/ or runs/ file is copied):
 - static (default, free tier): index.html + app.zip (the fairplay package and demo_bundle/).
   The page runs the Python in the visitor's browser with Pyodide (demo/browser.py). Pyodide
-  314.0.7 ships duckdb 1.5.1, lightgbm 4.6.0, pyarrow 22 and scikit-learn 1.8; the demo tests
-  pass on those versions (DECISIONS 2026-11-02).
+  314.0.7 ships duckdb 1.5.1, lightgbm 4.6.0 and pyarrow 22; the demo tests pass on those
+  versions, and scikit-learn is not loaded (DECISIONS 2026-11-02).
 - gradio (--gradio): app.py + requirements.txt for a Gradio Space (Hugging Face requires a paid
   plan for these since late 2026).
 

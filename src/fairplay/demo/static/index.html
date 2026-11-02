@@ -162,6 +162,7 @@
 
 <script src="https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide.js"></script>
 <script>
+const PYODIDE = "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/";
 const $ = (id) => document.getElementById(id);
 let py = null, tab = "links";
 const COLUMNS = ["date", "attention", "colour", "time_control", "result", "own_rating",
@@ -181,14 +182,18 @@ document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("cli
 async function boot() {
   const status = (m) => { $("status").textContent = m; };
   try {
+    const app = fetch("app.zip").then((r) => r.arrayBuffer());  // download alongside Python
     status("Loading Python…");
     py = await loadPyodide();
-    status("Loading DuckDB, LightGBM, scikit-learn…");
-    await py.loadPackage(["duckdb", "lightgbm", "pyarrow", "scikit-learn", "numpy",
-      "pydantic", "micropip"]);
-    await py.pyimport("micropip").install("chess==1.10.0");
+    status("Loading DuckDB and LightGBM…");
+    // LightGBM's wheel is installed without its declared scikit-learn dependency: the demo
+    // only predicts, so it never needs it, and skipping it cuts the first load by about a
+    // quarter (DECISIONS 2026-11-02).
+    await py.loadPackage(["duckdb", "scipy", "pyarrow", "numpy", "pydantic", "micropip"]);
+    await py.pyimport("micropip").install([PYODIDE + "lightgbm-4.6.0-py3-none-pyemscripten_2026_0_wasm32.whl",
+      "chess==1.10.0"], { deps: false });
     status("Loading the FairPlay model…");
-    const zip = await (await fetch("app.zip")).arrayBuffer();
+    const zip = await app;
     py.unpackArchive(zip, "zip", { extractDir: "/home/pyodide/app" });
     py.runPython(`
 import os, sys

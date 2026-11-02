@@ -45,3 +45,7 @@ def test_static_space_ships_code_and_bundle_only(tmp_path):
     # the only table is the frozen aggregate peer reference (rating band x time control)
     assert [n for n in names if n.endswith(".parquet")] == ["demo_bundle/peers_clock30.parquet"]
     assert "sdk: static" in (out / "README.md").read_text(encoding="utf-8")
+    # the page installs Pyodide 314.0.7's LightGBM wheel by hand and never loads scikit-learn
+    page = (out / "index.html").read_text(encoding="utf-8")
+    assert "pyodide/v314.0.7/" in page and "lightgbm-4.6.0-py3-none-pyemscripten" in page
+    assert '"scikit-learn"' not in page

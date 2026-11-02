@@ -22,7 +22,6 @@ import math
 from dataclasses import dataclass
 
 import numpy as np
-from sklearn.metrics import average_precision_score
 
 DEFAULT_CAPACITY = 0.005
 
@@ -132,6 +131,8 @@ def evaluate(month: Month, order: list[np.ndarray], score: np.ndarray,
     base = float(np.mean(bases))
     acc_max = np.full(month.n_accounts, -np.inf)
     np.maximum.at(acc_max, month.acc, score)
+    from sklearn.metrics import average_precision_score  # here: the browser demo ships no sklearn
+
     present = mult > 0
     finite = np.isfinite(acc_max)
     if not finite.all():  # -inf = "back of the queue"; keep the order, satisfy sklearn
