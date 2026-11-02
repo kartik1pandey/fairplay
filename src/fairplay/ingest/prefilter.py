@@ -16,6 +16,7 @@ from fairplay.ingest.pgn_stream import Headers, iter_games
 BLITZ_MIN_SECONDS = 180
 BLITZ_MAX_SECONDS = 479
 SAMPLE_BUCKETS = 10_000  # sample rate is given in basis points: 100 = 1%, 1000 = 10%
+MIN_PLIES = 20  # applied in cleaning (at least 10 moves per side); here with the other scope rules
 
 
 def parse_time_control(tc: bytes) -> tuple[int, int] | None:

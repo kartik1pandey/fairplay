@@ -11,8 +11,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from fairplay.ingest.clean import MIN_PLIES
-from fairplay.ingest.prefilter import BLITZ_MAX_SECONDS, BLITZ_MIN_SECONDS
+from fairplay.ingest.prefilter import BLITZ_MAX_SECONDS, BLITZ_MIN_SECONDS, MIN_PLIES
 
 
 class PlayerIn(BaseModel):

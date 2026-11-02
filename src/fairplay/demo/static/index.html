@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FairPlay research demo</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --ink: #1d1d1b; --muted: #5f5f5a; --line: #deded8;
+    --accent: #2d5b8a; --accent-ink: #ffffff; --warn-bg: #fff4e0; --warn-ink: #6b4a00;
+    --queue-bg: #fdecea; --queue-ink: #7a1f17; --ok-bg: #e9f3ec; --ok-ink: #1f5130;
+    --bar: #2d5b8a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #161615; --surface: #1f1f1d; --ink: #ecece6; --muted: #a5a59d; --line: #34342f;
+      --accent: #7fb0e0; --accent-ink: #0d1a26; --warn-bg: #3a2d10; --warn-ink: #f5d48a;
+      --queue-bg: #3b1d1a; --queue-ink: #f3b1a8; --ok-bg: #1a3022; --ok-ink: #a9d9b6;
+      --bar: #7fb0e0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 0 0 8px; }
+  p { margin: 0 0 10px; }
+  .sub { color: var(--muted); margin-bottom: 16px; }
+  .note { background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px;
+          padding: 10px 12px; margin-bottom: 16px; font-weight: 600; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+          padding: 16px; margin-bottom: 16px; }
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--line);
+          margin-bottom: 12px; }
+  .tabs button { background: none; border: 0; border-bottom: 2px solid transparent;
+                 padding: 8px 10px; color: var(--muted); font: inherit; cursor: pointer; }
+  .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent);
+                                       font-weight: 600; }
+  .panel[hidden] { display: none; }
+  textarea, select { width: 100%; font: 13px/1.4 ui-monospace, Consolas, monospace;
+                     background: var(--bg); color: var(--ink); border: 1px solid var(--line);
+                     border-radius: 6px; padding: 8px; }
+  select { font-family: inherit; font-size: 14px; width: auto; }
+  label { display: block; color: var(--muted); font-size: 13px; margin: 0 0 4px; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .btn { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 6px;
+         padding: 8px 16px; font: inherit; font-weight: 600; cursor: pointer; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .radios label { display: inline-flex; gap: 6px; align-items: center; margin-right: 14px;
+                  color: var(--ink); font-size: 14px; }
+  #status { color: var(--muted); font-size: 13px; }
+  .verdict { border-radius: 8px; padding: 10px 12px; font-weight: 700; font-size: 1.1rem;
+             margin-bottom: 10px; }
+  .verdict.queue { background: var(--queue-bg); color: var(--queue-ink); }
+  .verdict.clear { background: var(--ok-bg); color: var(--ok-ink); }
+  .verdict.other { background: var(--bg); color: var(--ink); border: 1px solid var(--line); }
+  ul.facts { margin: 0; padding-left: 18px; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line);
+           white-space: nowrap; font-variant-numeric: tabular-nums; }
+  th { color: var(--muted); font-weight: 600; }
+  .att { display: inline-block; height: 8px; border-radius: 4px; background: var(--bar);
+         vertical-align: middle; margin-right: 6px; }
+  pre { background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+        padding: 10px; overflow-x: auto; font-size: 12px; max-height: 420px; }
+  details summary { cursor: pointer; font-weight: 600; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>FairPlay: moderator-flag prioritisation</h1>
+  <p class="sub">Research demo. Runs entirely in your browser: the same Python code and frozen
+    model as the evaluated pipeline, loaded with Pyodide. Nothing you enter is sent anywhere
+    except game links, which go straight to Lichess.</p>
+  <p class="note">Research prototype. A score is a prioritisation signal, not evidence of
+    wrongdoing.</p>
+
+  <section class="card">
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="links">Lichess game links</button>
+      <button role="tab" aria-selected="false" data-tab="paste">Paste PGN</button>
+      <button role="tab" aria-selected="false" data-tab="upload">Upload .pgn</button>
+      <button role="tab" aria-selected="false" data-tab="sample">Synthetic player</button>
+    </div>
+    <div class="panel" data-panel="links">
+      <label for="links">Game links, one per line (up to 60). Profile links are refused.</label>
+      <textarea id="links" rows="4" placeholder="https://lichess.org/AbCdEfGh"></textarea>
+    </div>
+    <div class="panel" data-panel="paste" hidden>
+      <label for="pgn">PGN with [%clk] comments (a Lichess export)</label>
+      <textarea id="pgn" rows="8"></textarea>
+    </div>
+    <div class="panel" data-panel="upload" hidden>
+      <label for="file">A .pgn file from Lichess</label>
+      <input id="file" type="file" accept=".pgn">
+    </div>
+    <div class="panel radios" data-panel="sample" hidden>
+      <label><input type="radio" name="strategy" value="A" checked> A: blunt</label>
+      <label><input type="radio" name="strategy" value="B"> B: moderate</label>
+      <label><input type="radio" name="strategy" value="C"> C: careful</label>
+      <label><input type="radio" name="strategy" value="control"> Control: no engine</label>
+    </div>
+    <div class="row">
+      <div id="sideRow">
+        <label for="side">Whose games</label>
+        <select id="side">
+          <option value="">Auto: the player in every game</option>
+          <option value="w">White</option>
+          <option value="b">Black</option>
+        </select>
+      </div>
+      <button id="go" class="btn" disabled>Loading Python…</button>
+      <span id="status" role="status">Starting (first visit downloads ~60 MB, then it is
+        cached)</span>
+    </div>
+  </section>
+
+  <section id="result" class="card" hidden>
+    <div id="verdict" class="verdict other"></div>
+    <ul id="facts" class="facts"></ul>
+    <p id="disclaimer" class="sub" style="margin-top:10px"></p>
+  </section>
+
+  <section id="gamesCard" class="card" hidden>
+    <h2>Games (newest first)</h2>
+    <p class="sub" id="attNote" hidden>The bar shows the research model's attention: how much
+      its score leaned on each game. It is not proof about any game, and that model is not yet
+      tested out of sample.</p>
+    <div class="table-wrap"><table id="games"></table></div>
+  </section>
+
+  <section id="caseCard" class="card" hidden>
+    <details>
+      <summary>Case file (template, no LLM)</summary>
+      <pre id="case"></pre>
+    </details>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>How to read this</summary>
+      <p style="margin-top:8px"><b>What this is.</b> FairPlay ranks accounts for a moderator's
+        review queue by how much their recent blitz games look like accounts that later
+        carried a Lichess terms-of-service flag. It was trained on July 2025 and tested once on
+        August 2025 (flag-precision 0.388 at a 0.5% weekly queue, 23× the base rate).</p>
+      <p><b>What the label means.</b> <i>Would enter the review queue</i>: the score is at or
+        above the score of the last account admitted to the real August queue (median over
+        weeks). It is a request for a human to look, never a verdict. A flag can mean any
+        terms-of-service violation, not only engine use, and careful simulated engine use
+        (strategy C) was near chance.</p>
+      <p><b>Inputs.</b> Lichess rated blitz games with clocks. Ten games within 30 days give an
+        account score; fewer give only the per-game table. Player names are dropped on reading
+        and nothing is stored.</p>
+      <p>Code and full evaluation:
+        <a href="https://github.com/kartik1pandey/fairplay">github.com/kartik1pandey/fairplay</a></p>
+    </details>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+let py = null, tab = "links";
+const COLUMNS = ["date", "attention", "colour", "time_control", "result", "own_rating",
+  "opponent_gap", "score_minus_expected", "moves", "think_median_s", "think_cv",
+  "instant_share", "termination"];
+
+document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll(".tabs button").forEach((x) =>
+    x.setAttribute("aria-selected", String(x === b)));
+  document.querySelectorAll(".panel").forEach((p) => { p.hidden = p.dataset.panel !== tab; });
+  $("sideRow").hidden = tab === "sample";
+  $("go").textContent = tab === "sample" ? "Draw a random synthetic player" : "Analyse";
+  if (!py) $("go").textContent = "Loading Python…";
+}));
+
+async function boot() {
+  const status = (m) => { $("status").textContent = m; };
+  try {
+    status("Loading Python…");
+    py = await loadPyodide();
+    status("Loading DuckDB, LightGBM, scikit-learn…");
+    await py.loadPackage(["duckdb", "lightgbm", "pyarrow", "scikit-learn", "numpy",
+      "pydantic", "micropip"]);
+    await py.pyimport("micropip").install("chess==1.10.0");
+    status("Loading the FairPlay model…");
+    const zip = await (await fetch("app.zip")).arrayBuffer();
+    py.unpackArchive(zip, "zip", { extractDir: "/home/pyodide/app" });
+    py.runPython(`
+import os, sys
+os.chdir("/home/pyodide/app"); sys.path.insert(0, "/home/pyodide/app")
+from fairplay.demo import browser
+browser.scorer()
+`);
+    status("Ready");
+    $("go").disabled = false;
+    $("go").textContent = tab === "sample" ? "Draw a random synthetic player" : "Analyse";
+  } catch (e) {
+    py = null;
+    status("Could not start Python in this browser: " + e);
+  }
+}
+
+let api = null;
+function call(fn, ...args) {
+  api = api || py.pyimport("fairplay.demo.browser");
+  return JSON.parse(api[fn](...args));
+}
+
+async function pgnFromLinks() {
+  const req = call("ids_request", $("links").value);
+  if (req.error) throw new Error(req.error);
+  const r = await fetch(req.url, { method: "POST", body: req.body,
+                                   headers: { Accept: "application/x-chess-pgn" } });
+  if (r.status === 429) throw new Error("Lichess is rate-limiting requests; wait one minute");
+  if (!r.ok) throw new Error("Lichess returned HTTP " + r.status);
+  return r.text();
+}
+
+$("go").addEventListener("click", async () => {
+  $("go").disabled = true;
+  $("status").textContent = "Working…";
+  try {
+    let r;
+    if (tab === "sample") {
+      r = call("run_sample", document.querySelector("input[name=strategy]:checked").value);
+    } else {
+      let text = "";
+      if (tab === "links") text = await pgnFromLinks();
+      else if (tab === "paste") text = $("pgn").value;
+      else {
+        const f = $("file").files[0];
+        if (!f) throw new Error("choose a .pgn file");
+        text = (await f.text()).slice(0, 2000000);
+      }
+      r = call("run_pgn", text, $("side").value);
+    }
+    if (r.error) throw new Error(r.error);
+    render(r);
+    $("status").textContent = "Done";
+  } catch (e) {
+    $("result").hidden = false;
+    $("verdict").className = "verdict other";
+    $("verdict").textContent = "Could not analyse: " + e.message;
+    $("facts").innerHTML = "";
+    $("gamesCard").hidden = $("caseCard").hidden = true;
+    $("status").textContent = "";
+  }
+  $("go").disabled = false;
+});
+
+function li(html) { const x = document.createElement("li"); x.innerHTML = html; return x; }
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+function render(r) {
+  $("result").hidden = false;
+  const label = r.label || "not enough games";
+  $("verdict").textContent = label.charAt(0).toUpperCase() + label.slice(1);
+  $("verdict").className = "verdict " + (label === "would enter the review queue" ? "queue"
+    : label === "would not be queued" ? "clear" : "other");
+  const f = $("facts");
+  f.innerHTML = "";
+  if (r.synthetic) f.append(li(`Synthetic player, strategy <b>${esc(r.strategy)}</b>: ` +
+    esc(r.strategy_note)));
+  const a = r.account;
+  if (a) {
+    f.append(li(`Score <b>${a.score}</b> vs queue threshold <b>${a.queue_threshold}</b> ` +
+      `(weekly capacity ${(a.capacity * 100).toFixed(1)}% of eligible accounts)`));
+    f.append(li(`Higher than about <b>${a.score_percentile}%</b> of ${esc(a.score_reference)}`));
+    f.append(li(`Calibrated P(flagged at the S0 snapshot): <b>${a.p_flag_at_s0}</b>`));
+  }
+  f.append(li(`Games used: ${r.games_used} of ${r.games_read}` +
+    (r.games_in_30_day_window != null ? `; ${r.games_in_30_day_window} inside the 30-day window`
+      : "")));
+  for (const [why, n] of Object.entries(r.skipped || {})) f.append(li(`Skipped ${n}: ${esc(why)}`));
+  $("disclaimer").textContent = r.disclaimer || "";
+
+  const games = r.games || [];
+  $("gamesCard").hidden = games.length === 0;
+  $("attNote").hidden = !r.research_model;
+  const cols = COLUMNS.filter((c) => games.some((g) => g[c] != null));
+  let html = "<thead><tr>" + cols.map((c) => `<th>${c.replaceAll("_", " ")}</th>`).join("") +
+    "</tr></thead><tbody>";
+  for (const g of games) {
+    html += "<tr>" + cols.map((c) => {
+      const v = g[c];
+      if (c === "attention" && v != null)
+        return `<td><span class="att" style="width:${Math.round(v * 80)}px"></span>${v}</td>`;
+      return `<td>${v == null ? "" : esc(v)}</td>`;
+    }).join("") + "</tr>";
+  }
+  $("games").innerHTML = html + "</tbody>";
+  $("caseCard").hidden = !r.case_file;
+  $("case").textContent = r.case_file ? JSON.stringify(r.case_file, null, 2) : "";
+}
+
+boot();
+</script>
+</body>
+</html>
